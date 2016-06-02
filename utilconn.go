@@ -3,7 +3,7 @@ package coap
 import (
 	//"errors"
 	"net"
-	"time"
+	//"time"
 	//"fmt"
 )
 
@@ -69,8 +69,10 @@ func SendMessageTo(msg *Message, conn Connection, addr *net.UDPAddr) (CoapRespon
 	*/
 }
 
+// We don't really need it...
+
 // SendMessage sends a CoAP Message to a UDP Connection
-func SendMessage(msg *Message, conn Connection) (CoapResponse, error) {
+/*func SendMessage(msg *Message, conn Connection) (CoapResponse, error) {
 	if conn == nil {
 		return nil, ErrNilConn
 	}
@@ -99,4 +101,4 @@ func SendMessage(msg *Message, conn Connection) (CoapResponse, error) {
 	resp := NewResponse(msg, err)
 
 	return resp, err
-}
+}*/

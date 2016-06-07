@@ -9,7 +9,7 @@ import (
 // ----------------------------------------------------------------
 
 // Creates a new default CanopousConnect
-func NewUDPConnection(c *net.UDPConn) Connection {
+func NewUDPConnection(c *net.UDPConn) *UDPConnection {
 	return &UDPConnection{
 		conn: c,
 	}
@@ -17,7 +17,7 @@ func NewUDPConnection(c *net.UDPConn) Connection {
 
 // Creates a new Connect given an existing UDP
 // connection and address
-func NewUDPConnectionWithAddr(c *net.UDPConn, a net.Addr) Connection {
+func NewUDPConnectionWithAddr(c *net.UDPConn, a net.Addr) *UDPConnection {
 	return &UDPConnection{
 		conn: c,
 		addr: a,
@@ -41,15 +41,20 @@ func (c *UDPConnection) SetReadDeadline(t time.Time) error {
 	return c.conn.SetReadDeadline(t)
 }
 
-func (c *UDPConnection) Read() (buf []byte, n int, err error) {
-	buf = make([]byte, MaxPacketSize)
-	n, _, err = c.conn.ReadFromUDP(buf)
+func (c *UDPConnection) Read() (result []byte, n int, clientAddr *net.UDPAddr, err error) {
+	buffer := make([]byte, MaxPacketSize)
+	n, clientAddr, err = c.conn.ReadFromUDP(buffer)
+
+	result = make([]byte, n)
+	copy(result, buffer)
 
 	return
 }
 
 func (c *UDPConnection) WriteTo(b []byte, addr net.Addr) (n int, err error) {
-	n, err = c.conn.WriteToUDP(b, addr.(*net.UDPAddr))
+	return  c.conn.WriteToUDP(b, addr.(*net.UDPAddr))
+}
 
-	return
+func (c *UDPConnection) Close() error {
+	return c.conn.Close()
 }

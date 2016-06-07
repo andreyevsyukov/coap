@@ -8,7 +8,7 @@ import (
 )
 
 // SendMessageTo sends a CoAP Message to UDP address
-func SendMessageTo(msg *Message, conn Connection, addr *net.UDPAddr) (CoapResponse, error) {
+func SendMessageTo(msg *Message, conn *UDPConnection, addr *net.UDPAddr) (CoapResponse, error) {
 	//fmt.Println("SendMessageTo: ", msg.MessageType, msg.MessageID)
 	if conn == nil {
 		return nil, ErrNilConn
@@ -72,7 +72,7 @@ func SendMessageTo(msg *Message, conn Connection, addr *net.UDPAddr) (CoapRespon
 // We don't really need it...
 
 // SendMessage sends a CoAP Message to a UDP Connection
-/*func SendMessage(msg *Message, conn Connection) (CoapResponse, error) {
+/*func SendMessage(msg *Message, conn *UDPConnection) (CoapResponse, error) {
 	if conn == nil {
 		return nil, ErrNilConn
 	}

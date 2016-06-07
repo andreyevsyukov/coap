@@ -95,8 +95,10 @@ type DefaultCoapServer struct {
 	localAddr  *net.UDPAddr
 	remoteAddr *net.UDPAddr
 
-	localConn  *net.UDPConn
-	remoteConn *net.UDPConn
+	localConn   *UDPConnection
+	remoteConn  *UDPConnection
+	//localConn  *net.UDPConn
+	//remoteConn *net.UDPConn
 
 	//messageIds   map[uint16]time.Time
 	messageIds   MessageIDSSharedMap
@@ -172,18 +174,21 @@ func (s *DefaultCoapServer) serveServer() {
 		log.Fatal(err)
 	}
 
-	s.localConn = conn
-
 	if conn == nil {
 		log.Fatal("An error occured starting up CoAP Server")
 	} else {
 		log.Println("Started CoAP Server ", conn.LocalAddr())
 	}
 
+	/* All is ok? Init! */
+
+	//s.localConn = conn
+	s.localConn = NewUDPConnection(conn)
+
 	s.events.Started(s)
 	s.handleMessageIDPurge()
 
-	readBuf := make([]byte, MaxPacketSize)
+	//readBuf := make([]byte, MaxPacketSize)
 	for {
 		select {
 		case <-s.stopChannel:
@@ -193,15 +198,23 @@ func (s *DefaultCoapServer) serveServer() {
 			// continue
 		}
 
-		len, addr, err := conn.ReadFromUDP(readBuf)
-//fmt.Println("ReadFromUDP: ", len, err)
+		/*len, addr, err := s.localConn.ReadFromUDP(readBuf)
 		if err == nil {
 
 			msgBuf := make([]byte, len)
 			copy(msgBuf, readBuf)
 
 			go s.handleMessage(msgBuf, conn, addr)
+		}*/
+
+		readBuf, _, addr, err := s.localConn.Read()
+
+		if err != nil {
+			log.Println(err)
+			continue
 		}
+
+		go s.handleMessage(readBuf, addr)
 	}
 }
 
@@ -243,15 +256,16 @@ func (s *DefaultCoapServer) SetProxyFilter(fn ProxyFilter) {
 	s.fnProxyFilter = fn
 }
 
-func (s *DefaultCoapServer) handleMessage(msgBuf []byte, conn *net.UDPConn, addr *net.UDPAddr) {
-	//fmt.Println("handleMessage: ")
+func (s *DefaultCoapServer) handleMessage(msgBuf []byte, addr *net.UDPAddr) {
 	msg, err := BytesToMessage(msgBuf)
 	s.events.Message(msg, true)
-//fmt.Println(msg.MessageType)
+
 	if msg.MessageType == MessageAcknowledgment {
-		handleResponse(s, msg, conn, addr)
+		//handleResponse(s, msg, conn, addr)
+		handleResponse(s, msg, s.localConn, addr)
 	} else {
-		handleRequest(s, err, msg, conn, addr)
+		//handleRequest(s, err, msg, conn, addr)
+		handleRequest(s, err, msg, s.localConn, addr)
 	}
 }
 
@@ -295,7 +309,8 @@ func (s *DefaultCoapServer) NewRoute(path string, method CoapCode, fn RouteHandl
 
 func (s *DefaultCoapServer) Send(req CoapRequest) (CoapResponse, error) {
 	s.events.Message(req.GetMessage(), false)
-	response, err := SendMessageTo(req.GetMessage(), NewUDPConnection(s.localConn), s.remoteAddr)
+	//response, err := SendMessageTo(req.GetMessage(), NewUDPConnection(s.localConn), s.remoteAddr)
+	response, err := SendMessageTo(req.GetMessage(), s.localConn, s.remoteAddr)
 
 	if err != nil {
 		s.events.Error(err)
@@ -316,7 +331,8 @@ func (s *DefaultCoapServer) SendAndWaitForCallback(req CoapRequest, handler Awai
 }
 
 func (s *DefaultCoapServer) SendTo(req CoapRequest, addr *net.UDPAddr) (CoapResponse, error) {
-	return SendMessageTo(req.GetMessage(), NewUDPConnection(s.localConn), addr)
+	//return SendMessageTo(req.GetMessage(), NewUDPConnection(s.localConn), addr)
+	return SendMessageTo(req.GetMessage(), s.localConn, addr)
 }
 
 func (s *DefaultCoapServer) NotifyChange(resource, value string, confirm bool) {
@@ -437,11 +453,13 @@ func (s *DefaultCoapServer) AllowProxyForwarding(msg *Message, addr *net.UDPAddr
 	return s.fnProxyFilter(msg, addr)
 }
 
-func (s *DefaultCoapServer) ForwardCoap(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func (s *DefaultCoapServer) ForwardCoap(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func (s *DefaultCoapServer) ForwardCoap(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	s.fnHandleCOAPProxy(msg, conn, addr)
 }
 
-func (s *DefaultCoapServer) ForwardHTTP(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func (s *DefaultCoapServer) ForwardHTTP(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func (s *DefaultCoapServer) ForwardHTTP(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	s.fnHandleHTTPProxy(msg, conn, addr)
 }
 

@@ -6,7 +6,8 @@ import (
 	"fmt"
 )
 
-func handleRequest(s CoapServer, err error, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleRequest(s CoapServer, err error, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleRequest(s CoapServer, err error, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	if msg.MessageType != MessageReset {
 		// Unsupported Method
 		if msg.Code != Get && msg.Code != Post && msg.Code != Put && msg.Code != Delete {
@@ -85,7 +86,8 @@ func handleRequest(s CoapServer, err error, msg *Message, conn *net.UDPConn, add
 				if err == nil {
 					s.GetEvents().Message(respMsg, false)
 
-					SendMessageTo(respMsg, NewUDPConnection(conn), addr)
+					//SendMessageTo(respMsg, NewUDPConnection(conn), addr)
+					SendMessageTo(respMsg, conn, addr)
 				} else {
 					fmt.Println("MESSAGE IS NOT VALID: ", err)
 				}
@@ -94,24 +96,30 @@ func handleRequest(s CoapServer, err error, msg *Message, conn *net.UDPConn, add
 	}
 }
 
-func handleReqUnknownCriticalOption(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqUnknownCriticalOption(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqUnknownCriticalOption(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	if msg.MessageType == MessageConfirmable {
-		SendMessageTo(BadOptionMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
+		//SendMessageTo(BadOptionMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
+		SendMessageTo(BadOptionMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 	}
 	return
 }
 
-func handleReqUnsupportedMethodRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqUnsupportedMethodRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqUnsupportedMethodRequest(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ret := NotImplementedMessage(msg.MessageID, MessageAcknowledgment)
 	ret.CloneOptions(msg, OptionURIPath, OptionContentFormat)
 
 	s.GetEvents().Message(ret, false)
-	SendMessageTo(ret, NewUDPConnection(conn), addr)
+	//SendMessageTo(ret, NewUDPConnection(conn), addr)
+	SendMessageTo(ret, conn, addr)
 }
 
-func handleReqProxyRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqProxyRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqProxyRequest(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	if !s.AllowProxyForwarding(msg, addr) {
-		SendMessageTo(ForbiddenMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
+		//SendMessageTo(ForbiddenMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
+		SendMessageTo(ForbiddenMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 	}
 
 	proxyURI := msg.GetOption(OptionProxyURI).StringValue()
@@ -124,46 +132,57 @@ func handleReqProxyRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *
 	}
 }
 
-func handleReqNoMatchingRoute(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqNoMatchingRoute(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqNoMatchingRoute(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ret := NotFoundMessage(msg.MessageID, MessageAcknowledgment)
 	ret.CloneOptions(msg, OptionURIPath, OptionContentFormat)
 	ret.Token = msg.Token
 
-	SendMessageTo(ret, NewUDPConnection(conn), addr)
+	//SendMessageTo(ret, NewUDPConnection(conn), addr)
+	SendMessageTo(ret, conn, addr)
 }
 
-func handleReqNoMatchingMethod(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqNoMatchingMethod(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqNoMatchingMethod(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ret := MethodNotAllowedMessage(msg.MessageID, MessageAcknowledgment)
 	ret.CloneOptions(msg, OptionURIPath, OptionContentFormat)
 
 	s.GetEvents().Message(ret, false)
-	SendMessageTo(ret, NewUDPConnection(conn), addr)
+	//SendMessageTo(ret, NewUDPConnection(conn), addr)
+	SendMessageTo(ret, conn, addr)
 }
 
-func handleReqUnsupportedContentFormat(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqUnsupportedContentFormat(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqUnsupportedContentFormat(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ret := UnsupportedContentFormatMessage(msg.MessageID, MessageAcknowledgment)
 	ret.CloneOptions(msg, OptionURIPath, OptionContentFormat)
 
 	s.GetEvents().Message(ret, false)
-	SendMessageTo(ret, NewUDPConnection(conn), addr)
+	//SendMessageTo(ret, NewUDPConnection(conn), addr)
+	SendMessageTo(ret, conn, addr)
 }
 
-func handleReqDuplicateMessageID(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqDuplicateMessageID(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqDuplicateMessageID(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ret := EmptyMessage(msg.MessageID, MessageReset)
 	ret.CloneOptions(msg, OptionURIPath, OptionContentFormat)
 
 	s.GetEvents().Message(ret, false)
-	SendMessageTo(ret, NewUDPConnection(conn), addr)
+	//SendMessageTo(ret, NewUDPConnection(conn), addr)
+	SendMessageTo(ret, conn, addr)
 }
 
-func handleRequestAutoAcknowledge(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleRequestAutoAcknowledge(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleRequestAutoAcknowledge(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ack := NewMessageOfType(MessageAcknowledgment, msg.MessageID)
 
 	s.GetEvents().Message(ack, false)
-	SendMessageTo(ack, NewUDPConnection(conn), addr)
+	//SendMessageTo(ack, NewUDPConnection(conn), addr)
+	SendMessageTo(ack, conn, addr)
 }
 
-func handleReqObserve(s CoapServer, req CoapRequest, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+//func handleReqObserve(s CoapServer, req CoapRequest, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
+func handleReqObserve(s CoapServer, req CoapRequest, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	// TODO: if server doesn't allow observing, return error
 
 	// TODO: Check if observation has been registered, if yes, remove it (observation == cancel)

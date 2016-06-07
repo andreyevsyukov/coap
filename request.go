@@ -59,7 +59,8 @@ func NewRequestFromMessage(msg *Message) CoapRequest {
 	}
 }
 
-func NewClientRequestFromMessage(msg *Message, attrs map[string]string, conn *net.UDPConn, addr *net.UDPAddr) CoapRequest {
+//func NewClientRequestFromMessage(msg *Message, attrs map[string]string, conn *net.UDPConn, addr *net.UDPAddr) CoapRequest {
+func NewClientRequestFromMessage(msg *Message, attrs map[string]string, conn *UDPConnection, addr *net.UDPAddr) CoapRequest {
 	return &DefaultCoapRequest{
 		msg:   msg,
 		attrs: attrs,
@@ -71,7 +72,8 @@ func NewClientRequestFromMessage(msg *Message, attrs map[string]string, conn *ne
 type CoapRequest interface {
 	SetProxyURI(uri string)
 	SetMediaType(mt MediaType)
-	GetConnection() *net.UDPConn
+	//GetConnection() *net.UDPConn
+	GetConnection() *UDPConnection
 	GetAddress() *net.UDPAddr
 	GetAttributes() map[string]string
 	GetAttribute(o string) string
@@ -90,7 +92,8 @@ type CoapRequest interface {
 type DefaultCoapRequest struct {
 	msg    *Message
 	attrs  map[string]string
-	conn   *net.UDPConn
+	//conn   *net.UDPConn
+	conn   *UDPConnection
 	addr   *net.UDPAddr
 	server *CoapServer
 }
@@ -103,7 +106,8 @@ func (c *DefaultCoapRequest) SetMediaType(mt MediaType) {
 	c.msg.AddOption(OptionContentFormat, mt)
 }
 
-func (c *DefaultCoapRequest) GetConnection() *net.UDPConn {
+//func (c *DefaultCoapRequest) GetConnection() *net.UDPConn {
+func (c *DefaultCoapRequest) GetConnection() *UDPConnection {
 	return c.conn
 }
 

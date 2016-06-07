@@ -205,8 +205,10 @@ type CoapServer interface {
 
 	AllowProxyForwarding(*Message, *net.UDPAddr) bool
 	GetRoutes() []*Route
-	ForwardCoap(msg *Message, conn *net.UDPConn, addr *net.UDPAddr)
-	ForwardHTTP(msg *Message, conn *net.UDPConn, addr *net.UDPAddr)
+	//ForwardCoap(msg *Message, conn *net.UDPConn, addr *net.UDPAddr)
+	//ForwardHTTP(msg *Message, conn *net.UDPConn, addr *net.UDPAddr)
+	ForwardCoap(msg *Message, conn *UDPConnection, addr *net.UDPAddr)
+	ForwardHTTP(msg *Message, conn *UDPConnection, addr *net.UDPAddr)
 
 	AddObservation(resource, token string, addr *net.UDPAddr)
 	HasObservation(resource string, addr *net.UDPAddr) bool
@@ -223,6 +225,8 @@ type Connection interface {
 	GetConnection() net.Conn
 	Write(b []byte) (int, error)
 	SetReadDeadline(t time.Time) error
-	Read() (buf []byte, n int, err error)
+	//Read() (buf []byte, n int, err error)
+	Read() (result []byte, n int, clientAddr *net.UDPAddr, err error)
 	WriteTo(b []byte, addr net.Addr) (int, error)
+	Close() error
 }

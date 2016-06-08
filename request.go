@@ -4,6 +4,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"net/url"
 )
 
 // Creates a New Request Instance
@@ -85,6 +86,8 @@ type CoapRequest interface {
 	SetToken(t string)
 	GetURIQuery(q string) string
 	SetURIQuery(k string, v string)
+	GetRequestParamAsString(key string) string
+	GetRequestParamAsInteger(key string) int
 }
 
 // Wraps a CoAP Message as a Request
@@ -96,6 +99,7 @@ type DefaultCoapRequest struct {
 	conn   *UDPConnection
 	addr   *net.UDPAddr
 	server *CoapServer
+	parsedRequestBody	url.Values
 }
 
 func (c *DefaultCoapRequest) SetProxyURI(uri string) {
@@ -170,4 +174,36 @@ func (c *DefaultCoapRequest) GetURIQuery(q string) string {
 
 func (c *DefaultCoapRequest) SetURIQuery(k string, v string) {
 	c.GetMessage().AddOption(OptionURIQuery, k+"="+v)
+}
+
+func (c *DefaultCoapRequest) GetRequestParamAsString(key string) string {
+	parseRequestBodyAsURLEncodedParams(c)
+
+	return c.parsedRequestBody.Get(key)
+}
+
+func (c *DefaultCoapRequest) GetRequestParamAsInteger(key string) int {
+	parseRequestBodyAsURLEncodedParams(c)
+
+	if property, err := strconv.Atoi(c.parsedRequestBody.Get(key)); err == nil {
+		return property
+	} else {
+		return 0
+	}
+}
+
+func parseRequestBodyAsURLEncodedParams(request *DefaultCoapRequest) {
+	if request.parsedRequestBody == nil {
+		request.parsedRequestBody = make(url.Values)
+
+		payload := request.GetMessage().Payload
+		if payload != nil {
+			query := strings.Trim(payload.String(), "\r\n ")
+			queryMap, err := url.ParseQuery(query)
+
+			if err == nil {
+				request.parsedRequestBody = queryMap
+			}
+		}
+	}
 }

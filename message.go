@@ -332,6 +332,10 @@ func (m *Message) GetTokenString() string {
 	return string(m.Token[:len(m.Token)])
 }
 
+func (m *Message) GetMessageIDString() string {
+	return strconv.Itoa(int(m.MessageID))
+}
+
 // Returns an array of options given an option code
 func (m Message) GetOptions(id OptionCode) []*Option {
 	var opts []*Option

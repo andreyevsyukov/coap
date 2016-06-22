@@ -198,7 +198,13 @@ func parseRequestBodyAsURLEncodedParams(request *DefaultCoapRequest) {
 
 		payload := request.GetMessage().Payload
 		if payload != nil {
-			query := strings.Trim(payload.String(), "\r\n ")
+			/*query, err := url.QueryUnescape(payload.String())
+			if err != nil {
+				return
+			}*/
+			query := payload.String()
+
+			query = strings.Trim(query, "\r\n ")
 			queryMap, err := url.ParseQuery(query)
 
 			if err == nil {

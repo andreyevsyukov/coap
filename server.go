@@ -1,7 +1,6 @@
 package coap
 
 import (
-	//"github.com/streamrail/concurrent-map"
 	"sync"
 	"bytes"
 	"log"
@@ -9,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime/debug"
+	"github.com/andreyevsyukov/coap/Logger"
 	//"fmt"
 )
 
@@ -21,8 +22,6 @@ type AwaitResponseHandler func(respMsg *Message)
 
 var awaitResponsePool map[uint16]AwaitResponseHandler
 func initResponser() {
-	/*responser = &Responser{}
-	responser.Msg = make(chan *Message)*/
 	awaitResponsePool = make(map[uint16]AwaitResponseHandler)
 }
 func RegisterAwaitResponseHandler(messageId uint16, handler AwaitResponseHandler) {
@@ -119,6 +118,10 @@ func (s *DefaultCoapServer) GetEvents() *Events {
 
 func (s *DefaultCoapServer) Start() {
 
+	Logger.Init()
+
+	Logger.Debug("Init Service Discovery")
+
 	var discoveryRoute RouteHandler = func(req CoapRequest) CoapResponse {
 		msg := req.GetMessage()
 
@@ -160,12 +163,13 @@ func (s *DefaultCoapServer) Start() {
 	}
 
 	s.NewRoute("/.well-known/core", Get, discoveryRoute)
+
 	initResponser()
+
 	s.serveServer()
 }
 
 func (s *DefaultCoapServer) serveServer() {
-	//fmt.Println("serveServer")
 	s.messageIds.m = make(map[uint16]time.Time)
 
 	conn, err := net.ListenUDP("udp", s.localAddr)
@@ -175,20 +179,18 @@ func (s *DefaultCoapServer) serveServer() {
 	}
 
 	if conn == nil {
-		log.Fatal("An error occured starting up CoAP Server")
+		Logger.Fatal("An error occured starting up CoAP Server")
 	} else {
-		log.Println("Started CoAP Server ", conn.LocalAddr())
+		Logger.Debug("Started CoAP Server ", conn.LocalAddr())
 	}
 
 	/* All is ok? Init! */
 
-	//s.localConn = conn
 	s.localConn = NewUDPConnection(conn)
 
 	s.events.Started(s)
 	s.handleMessageIDPurge()
 
-	//readBuf := make([]byte, MaxPacketSize)
 	for {
 		select {
 		case <-s.stopChannel:
@@ -197,15 +199,6 @@ func (s *DefaultCoapServer) serveServer() {
 		default:
 			// continue
 		}
-
-		/*len, addr, err := s.localConn.ReadFromUDP(readBuf)
-		if err == nil {
-
-			msgBuf := make([]byte, len)
-			copy(msgBuf, readBuf)
-
-			go s.handleMessage(msgBuf, conn, addr)
-		}*/
 
 		readBuf, _, addr, err := s.localConn.Read()
 
@@ -224,7 +217,6 @@ func (s *DefaultCoapServer) Stop() {
 }
 
 func (s *DefaultCoapServer) handleMessageIDPurge() {
-	//fmt.Println("handleMessageIDPurge")
 	// Routine for clearing up message IDs which has expired
 	ticker := time.NewTicker(MessageIDPurgeDuration * time.Second)
 	go func() {
@@ -257,6 +249,15 @@ func (s *DefaultCoapServer) SetProxyFilter(fn ProxyFilter) {
 }
 
 func (s *DefaultCoapServer) handleMessage(msgBuf []byte, addr *net.UDPAddr) {
+	defer func() {
+		// logging the error if any
+		if r := recover(); r != nil {
+	        Logger.Error("coap.handleMessage", "Logging the recovered error: ", r)
+	        stackBuf := debug.Stack()
+	        Logger.Error("coap.handleMessage", "Runtime error: " + string(stackBuf))
+        }
+	}()
+
 	msg, err := BytesToMessage(msgBuf)
 	s.events.Message(msg, true)
 

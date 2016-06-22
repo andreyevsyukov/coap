@@ -432,6 +432,17 @@ func (m *Message) SetStringPayload(s string) {
 	m.Payload = NewPlainTextPayload(s)
 }
 
+func (m *Message) SetJSONPayload(v interface{}) {
+	m.Payload = NewJSONPayload(v)
+}
+
+func (m *Message) String() string {
+	if m.Payload == nil {
+		return ""
+	}
+	return m.Payload.String()
+}
+
 // Determines if a message contains options for proxying (i.e. Proxy-Scheme or Proxy-Uri)
 func IsProxyRequest(msg *Message) bool {
 	if msg.GetOption(OptionProxyScheme) != nil || msg.GetOption(OptionProxyURI) != nil {
@@ -468,12 +479,12 @@ func valueToBytes(value interface{}) []byte {
 }
 
 // Returns the string value for a Message Payload
-func PayloadAsString(p MessagePayload) string {
+/*func PayloadAsString(p MessagePayload) string {
 	if p == nil {
 		return ""
 	}
 	return p.String()
-}
+}*/
 
 func decodeInt(b []byte) uint32 {
 	tmp := []byte{0, 0, 0, 0}

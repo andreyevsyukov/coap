@@ -1,6 +1,7 @@
 package coap
 
 import (
+	"github.com/andreyevsyukov/coap/Logger"
 	"io/ioutil"
 	"log"
 	"net"
@@ -15,54 +16,48 @@ func NullProxyFilter(*Message, *net.UDPAddr) bool {
 	return true
 }
 
-//type ProxyHandler func(msg *Message, conn *net.UDPConn, addr *net.UDPAddr)
 type ProxyHandler func(msg *Message, conn *UDPConnection, addr *net.UDPAddr)
 
 // The default handler when proxying is disabled
-//func NullProxyHandler(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func NullProxyHandler(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
-	//SendMessageTo(ProxyingNotSupportedMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
 	SendMessageTo(ProxyingNotSupportedMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 }
 
-//func COAPProxyHandler(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func COAPProxyHandler(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	proxyURI := msg.GetOption(OptionProxyURI).StringValue()
 
 	parsedURL, err := url.Parse(proxyURI)
 	if err != nil {
 		log.Println("Error parsing proxy URI")
-		//SendMessageTo(BadGatewayMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
 		SendMessageTo(BadGatewayMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 		return
 	}
 
-	client := NewCoapClient()
+	client := NewServer("0", parsedURL.Host)
 	client.OnStart(func(server CoapServer) {
-		client.Dial(parsedURL.Host)
 
 		msg.RemoveOptions(OptionProxyURI)
 		req := NewRequestFromMessage(msg)
 		req.SetRequestURI(parsedURL.RequestURI())
 
-		response, err := client.Send(req)
+		err := client.SendAndWaitForCallback(req, func(respMsg *Message) {
+			Logger.Debug("Proxy RESP", CoapCodeToString(respMsg.Code), respMsg.String())
+
+			_, err = SendMessageTo(respMsg, conn, addr)
+			if err != nil {
+				Logger.Error("Error occured responding to proxy request")
+			}
+
+			client.Stop()
+		})
+
 		if err != nil {
-			//SendMessageTo(BadGatewayMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
+			Logger.Debug("Proxy ERROR", err)
 			SendMessageTo(BadGatewayMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 			client.Stop()
-			return
 		}
-
-		//_, err = SendMessageTo(response.GetMessage(), NewUDPConnection(conn), addr)
-		_, err = SendMessageTo(response.GetMessage(), conn, addr)
-		if err != nil {
-			log.Println("Error occured responding to proxy request")
-			client.Stop()
-			return
-		}
-		client.Stop()
-
 	})
+
 	client.Start()
 }
 

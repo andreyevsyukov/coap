@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"fmt"
+	"github.com/andreyevsyukov/coap/Logger"
 )
 
 //func handleRequest(s CoapServer, err error, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
@@ -25,6 +26,7 @@ func handleRequest(s CoapServer, err error, msg *Message, conn *UDPConnection, a
 
 		// Proxy
 		if IsProxyRequest(msg) {
+			Logger.Debug("coap.handleRequest", "we got PROXY request")
 			handleReqProxyRequest(s, msg, conn, addr)
 		} else {
 			route, attrs, err := MatchingRoute(msg.GetURIPath(), MethodString(msg.Code), msg.GetOptions(OptionContentFormat), s.GetRoutes())
@@ -118,17 +120,34 @@ func handleReqUnsupportedMethodRequest(s CoapServer, msg *Message, conn *UDPConn
 //func handleReqProxyRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func handleReqProxyRequest(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	if !s.AllowProxyForwarding(msg, addr) {
-		//SendMessageTo(ForbiddenMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
+		Logger.Debug("PROXY IS NOT ALLOWED")
 		SendMessageTo(ForbiddenMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
+		/*msg := ContentMessage(msg.MessageID, MessageAcknowledgment)
+		msg.SetStringPayload("PROXY IS NOT ALLOWED")
+		SendMessageTo(msg, conn, addr)*/
 	}
 
 	proxyURI := msg.GetOption(OptionProxyURI).StringValue()
-	if IsCoapURI(proxyURI) {
-		s.ForwardCoap(msg, conn, addr)
-	} else if IsHTTPURI(proxyURI) {
-		s.ForwardHTTP(msg, conn, addr)
-	} else {
-		//
+
+	Logger.Debug("PROXYING THE MSG!", "URI:", proxyURI)
+
+	proxySchemeOption := msg.GetOption(OptionProxyScheme)
+
+	proxyScheme := ""
+	if proxySchemeOption != nil {
+		proxyScheme = proxySchemeOption.StringValue()
+	}
+
+	switch {
+		case proxyScheme == "coap" || IsCoapURI(proxyURI):
+			s.ForwardCoap(msg, conn, addr)
+
+		case proxyScheme == "http" || IsHTTPURI(proxyURI):
+			s.ForwardHTTP(msg, conn, addr)
+
+		default:
+			Logger.Error("UNKNOWN PROXY SCHEME!")
+			SendMessageTo(BadRequestMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 	}
 }
 

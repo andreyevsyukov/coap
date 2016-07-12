@@ -98,26 +98,21 @@ func handleRequest(s CoapServer, err error, msg *Message, conn *UDPConnection, a
 	}
 }
 
-//func handleReqUnknownCriticalOption(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func handleReqUnknownCriticalOption(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	if msg.MessageType == MessageConfirmable {
-		//SendMessageTo(BadOptionMessage(msg.MessageID, MessageAcknowledgment), NewUDPConnection(conn), addr)
 		SendMessageTo(BadOptionMessage(msg.MessageID, MessageAcknowledgment), conn, addr)
 	}
 	return
 }
 
-//func handleReqUnsupportedMethodRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func handleReqUnsupportedMethodRequest(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	ret := NotImplementedMessage(msg.MessageID, MessageAcknowledgment)
 	ret.CloneOptions(msg, OptionURIPath, OptionContentFormat)
 
 	s.GetEvents().Message(ret, false)
-	//SendMessageTo(ret, NewUDPConnection(conn), addr)
 	SendMessageTo(ret, conn, addr)
 }
 
-//func handleReqProxyRequest(s CoapServer, msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func handleReqProxyRequest(s CoapServer, msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
 	if !s.AllowProxyForwarding(msg, addr) {
 		Logger.Debug("PROXY IS NOT ALLOWED")

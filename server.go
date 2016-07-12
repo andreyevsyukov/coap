@@ -203,7 +203,7 @@ func (s *DefaultCoapServer) serveServer() {
 		readBuf, _, addr, err := s.localConn.Read()
 
 		if err != nil {
-			log.Println(err)
+			Logger.Error("Error while reading in serverServer", err)
 			continue
 		}
 
@@ -456,12 +456,12 @@ func (s *DefaultCoapServer) AllowProxyForwarding(msg *Message, addr *net.UDPAddr
 
 //func (s *DefaultCoapServer) ForwardCoap(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func (s *DefaultCoapServer) ForwardCoap(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
-	s.fnHandleCOAPProxy(msg, conn, addr)
+	s.fnHandleCOAPProxy(s, msg, conn, addr)
 }
 
 //func (s *DefaultCoapServer) ForwardHTTP(msg *Message, conn *net.UDPConn, addr *net.UDPAddr) {
 func (s *DefaultCoapServer) ForwardHTTP(msg *Message, conn *UDPConnection, addr *net.UDPAddr) {
-	s.fnHandleHTTPProxy(msg, conn, addr)
+	s.fnHandleHTTPProxy(s, msg, conn, addr)
 }
 
 func (s *DefaultCoapServer) GetRoutes() []*Route {
